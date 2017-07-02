@@ -1,10 +1,12 @@
 package shared
 
 import (
-	"github.com/faiface/pixel"
 	"image/color"
 	"net"
 	"sync"
+	"time"
+
+	"github.com/faiface/pixel"
 )
 
 type ServerPlayer struct {
@@ -12,6 +14,7 @@ type ServerPlayer struct {
 	Conn         net.Conn
 	RequestQueue []*Message
 	QueueLock    sync.RWMutex
+	Ping         time.Time
 }
 
 type ClientPlayer struct {

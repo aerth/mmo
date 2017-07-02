@@ -54,6 +54,7 @@ type GameWorld struct {
 	simLock             sync.Mutex
 	wincenter           pixel.Vec
 	centerMatrix        pixel.Matrix
+	ping                time.Time
 }
 
 func main() {
@@ -228,8 +229,12 @@ func run(addr, id string) error {
 		select {
 		default:
 		case <-ping:
-			shared.SendMessage(&shared.Message{}, conn)
-
+			pong := time.Since(g.ping)
+			g.ping = time.Now()
+			shared.SendMessage(&shared.Message{Ping: &pong}, conn)
+		}
+		select {
+		default:
 		case <-second:
 			win.SetTitle(fmt.Sprintf("%v fps", fps))
 			fps = 0

@@ -138,9 +138,9 @@ func handleConnection(conn net.Conn) error {
 	id := msg.Request.ConnectRequest.ID
 
 	// check if in use
-	/*	if _, taken := players[id]; taken {
+	if _, taken := players[id]; taken {
 		return fmt.Errorf("Player ID %q in use", id)
-	} */
+	}
 
 	// echo back connect message
 	err = shared.SendMessage(msg, conn)
@@ -157,6 +157,7 @@ func handleConnection(conn net.Conn) error {
 			Position: pos,
 		},
 		Conn: conn,
+		Ping: time.Now(),
 	}
 
 	// move to (0,0)
@@ -190,7 +191,8 @@ func handlePlayer(id string) {
 		}
 		conn := player.Conn
 		msg, err := shared.GetMessage(conn)
-		if err != nil {
+
+		deleteplayer := func() {
 			log.Print(errors.New(fmt.Sprintf("Client disconnected: (failed getting message for player %s)", id), err))
 			playersLock.Lock()
 			delete(players, id)
@@ -200,9 +202,25 @@ func handlePlayer(id string) {
 					id: id,
 				},
 			})
+		}
+
+		if err != nil {
+			deleteplayer()
 			continue
 		}
 		log.Printf("%s %q", msg, id)
+
+		if msg.Ping != nil {
+			// pong
+			lag := time.Since(player.Ping)
+			player.Ping = time.Now()
+			err := shared.SendMessage(&shared.Message{Ping: &lag}, conn)
+			if err != nil {
+				deleteplayer()
+				continue
+
+			}
+		}
 		if msg.Request != nil {
 			player.QueueLock.Lock()
 			player.RequestQueue = append(player.RequestQueue, msg)

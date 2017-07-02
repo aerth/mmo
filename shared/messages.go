@@ -9,6 +9,7 @@ import (
 
 type Message struct {
 	Sent    time.Time
+	Ping    *time.Duration
 	Request *Request
 	Update  *Update
 }
@@ -67,8 +68,12 @@ func (m Message) String() string {
 		return m.Update.String()
 	}
 
-	if !m.Sent.IsZero() {
-		return fmt.Sprintf("Ping: %s", m.Sent)
+	if m.Sent.IsZero() {
+		return "invalid packet"
+	}
+
+	if m.Ping != nil {
+		return fmt.Sprintf("Ping: %s", m.Ping)
 	}
 
 	return "empty packet"
