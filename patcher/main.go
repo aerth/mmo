@@ -127,6 +127,10 @@ func downloadClient(clientName string) error {
 		log.Printf("skipping download")
 		return nil
 	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("got 404")
+	}
 	log.Printf("downloading client %q", clientName)
 
 	clientBin, err := os.Create(clientName)
