@@ -26,20 +26,10 @@ var protocol = flag.String("protocol", "udp", fmt.Sprintf("network protocol to u
 
 func main() {
 	flag.Parse()
-
-	logFile, err := os.Create("game.log")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	out := io.MultiWriter(logFile, os.Stdout)
-
-	logger := log.New(out, "", log.LstdFlags)
-
 	if *playerID == "" {
 		confData, err := ioutil.ReadFile(*confFile)
 		if err != nil {
-			logger.Fatalf("%s not found: %v", *confFile, err)
+			log.Fatalf("%s not found: %v", *confFile, err)
 		}
 		lines := strings.Split(string(confData), "\n")
 		for _, line := range lines {
@@ -59,21 +49,26 @@ func main() {
 
 			conf, err := os.Create(*confFile)
 			if err != nil {
-				logger.Fatal(err)
+				log.Fatal(err)
 			}
 			if runtime.GOOS == "windows" {
 				if _, err := fmt.Fprintf(conf, "%s\r\nplayer_id=%s", updatedConf, *playerID); err != nil {
-					logger.Fatal(err)
+					log.Fatal(err)
 				}
 			} else {
 				if _, err := fmt.Fprintf(conf, "%s\nplayer_id=%s", updatedConf, *playerID); err != nil {
-					logger.Fatal(err)
+					log.Fatal(err)
 				}
 			}
 
 		}
 	}
 
+	gui()
+
+}
+
+func getClientName() string {
 	var clientName string
 	switch runtime.GOOS {
 	case "windows":
@@ -84,21 +79,30 @@ func main() {
 		clientName = "client-linux-amd64"
 	}
 
-	if err := downloadClient(clientName); err != nil {
-		logger.Fatal(err)
+	return clientName
+}
+
+func runClient(clientName string) error {
+	logFile, err := os.OpenFile("game.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		return err
 	}
+
+	out := io.MultiWriter(logFile, os.Stdout)
+	log.SetOutput(out)
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
-
+	log.Printf("Running %s %s %s %s %s %s %s", filepath.Join(cwd, clientName), "--addr", *addr, "--id", *playerID, "--protocol", *protocol)
 	cmd := exec.Command(filepath.Join(cwd, clientName), "--addr", *addr, "--id", *playerID, "--protocol", *protocol)
 	cmd.Stdout = out
 	cmd.Stderr = out
 	if err := cmd.Run(); err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
+	return nil
 }
 
 func downloadClient(clientName string) error {
@@ -123,7 +127,7 @@ func downloadClient(clientName string) error {
 		log.Printf("skipping download")
 		return nil
 	}
-	log.Printf("downloading client")
+	log.Printf("downloading client %q", clientName)
 
 	clientBin, err := os.Create(clientName)
 	if err != nil {
@@ -142,5 +146,6 @@ func downloadClient(clientName string) error {
 	if err := clientBin.Close(); err != nil {
 		return err
 	}
+	log.Println("download complete")
 	return nil
 }

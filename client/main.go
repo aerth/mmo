@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "image/png"
+	"io"
+	"os"
 
 	"flag"
 	"fmt"
@@ -57,6 +59,17 @@ type GameWorld struct {
 	centerMatrix        pixel.Matrix
 	facing              shared.Direction
 	action              shared.Action
+}
+
+func init() {
+
+	file, err := os.OpenFile("game.log", os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		panic(err)
+	}
+	out := io.MultiWriter(file, os.Stderr)
+
+	log.SetOutput(out)
 }
 
 func main() {
@@ -253,7 +266,7 @@ func run(protocol, addr, id string) error {
 			fps = 0
 		}
 	}
-	return nil
+	return shared.FatalErr(fmt.Errorf("window closed"))
 }
 
 func requestMove(direction shared.Direction, conn net.Conn) error {
