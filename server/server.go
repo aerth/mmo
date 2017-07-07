@@ -67,7 +67,7 @@ func (s *mmoServer) start(protocol string, port int, errc chan error) error {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			if req.URL.Path == "/"+client {
+			if strings.Contains(req.URL.Path, client) {
 				log.Printf("serving client: %s", client)
 				http.ServeFile(w, req, client)
 				return
@@ -346,7 +346,7 @@ func (s *mmoServer) handleMoveRequest(id string, req *shared.MoveRequest) error 
 		return errors.New("requesting player "+id+" is nil??", nil)
 	}
 
-	player.Position = player.Position.Add(req.Direction.ToVec().Scaled(2))
+	player.Position = player.Position.Add(req.Direction.Scaled(2))
 	s.queueUpdate(func() error {
 		return s.broadcastPlayerMoved(id, player.Position, req.Created)
 	})
