@@ -24,7 +24,7 @@ func Dial(protocol, raddr string) (net.Conn, error) {
 	case ProtocolTCP:
 		return net.Dial("tcp", raddr)
 	}
-	return nil, fmt.Errorf("invalid protcol %s. select from available: %s | %s", ProtocolUDP, ProtocolTCP)
+	return nil, fmt.Errorf("invalid protcol %s. select from available: %s | %s", protocol, ProtocolUDP, ProtocolTCP)
 }
 
 func Listen(protocol, laddr string) (net.Listener, error) {

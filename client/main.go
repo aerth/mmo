@@ -57,15 +57,18 @@ func run(protocol, addr, id string) error {
 		return errors.New("failed to dial server", err)
 	}
 
-	g := NewGame()
-	g.playerID = id
-	g.players[id] = &shared.ClientPlayer{
-		Player: &shared.Player{
-			ID:       id,
-			Position: pixel.ZV,
-		},
+	msg, err := shared.GetMessage(conn)
+	if err != nil {
+		return errors.New("failed reading message", err)
 	}
-	go func() { g.handleConnection(conn) }()
+
+	if msg.Update == nil || msg.Update.WorldState == nil || msg.Update.WorldState.World == nil {
+		return errors.New("expected Sync message on server handshake, got "+msg.String(), nil)
+	}
+
+	cs := newClientState(id, msg.Update.WorldState.World)
+
+	go func() { cs.readUpdates(conn) }()
 
 	cfg := pixelgl.WindowConfig{
 		Title:  "loading",
@@ -95,19 +98,15 @@ func run(protocol, addr, id string) error {
 	last := time.Now()
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
 	tilebatch := debugTiles()
-	g.wincenter = win.Bounds().Center()
-	g.centerMatrix = pixel.IM.Moved(g.wincenter)
-	if g.facing == shared.DIR_NONE {
-		g.facing = DOWN
-	}
-	g.action = shared.A_WALK
+	wincenter := win.Bounds().Center()
+	centerMatrix := pixel.IM.Moved(wincenter)
 	go func() {
 		for {
-			err := <-g.errc
+			err := <-cs.errc
 			if shared.IsFatal(err) {
 				log.Fatal(err)
 			}
-			log.Printf("Non-fatal Error: %v", err)
+			log.Printf("Error: %v", err)
 		}
 	}()
 	camPos := pixel.ZV
@@ -217,22 +216,24 @@ func dialServer(protocol, addr, id string) (net.Conn, error) {
 }
 
 func requestMove(direction pixel.Vec, conn net.Conn) error {
-	msg := &shared.Message{
-		Request: &shared.Request{MoveRequest: &shared.MoveRequest{
-			Direction: direction,
-			Created:   time.Now(),
+	return shared.SendMessage(&shared.Message{
+		Request: &shared.Request{
+			MoveRequest: &shared.MoveRequest{
+				Direction: direction,
+				Created:   time.Now(),
+			},
 		},
-		}}
-	return shared.SendMessage(msg, conn)
+	}, conn)
 }
 
 func requestSpeak(txt string, conn net.Conn) error {
-	msg := &shared.Message{
-		Request: &shared.Request{SpeakRequest: &shared.SpeakRequest{
-			Text: txt,
-		}},
-	}
-	return shared.SendMessage(msg, conn)
+	return shared.SendMessage(&shared.Message{
+		Request: &shared.Request{
+			SpeakRequest: &shared.SpeakRequest{
+				Text: txt,
+			},
+		},
+	}, conn)
 }
 
 func stringToColor(str string) color.Color {

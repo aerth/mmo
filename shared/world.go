@@ -53,7 +53,7 @@ func (w *World) Step(dt float64) (err error) {
 	for id, player := range w.players {
 		// update player positions based on velocity
 		if player.Direction != pixel.ZV {
-			newPos := player.Position.Add(player.Direction.Scaled(player.Speed * dt))
+			newPos := player.Position.Add(player.Direction.Unit().Scaled(player.Speed * dt))
 			//check collisions
 			var collisionFound bool
 			hitbox := RectFromCenter(newPos, player.Size.X, player.Size.Y)
@@ -115,7 +115,7 @@ func (w *World) applyPlayerMoved(moved *PlayerMoved) error {
 	if err != nil {
 		return err
 	}
-	player.Position = moved.Direction
+	player.Direction = moved.Direction
 	return nil
 }
 

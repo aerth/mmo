@@ -13,3 +13,12 @@ func RandVec(min, max float64) pixel.Vec {
 func RectFromCenter(center pixel.Vec, w, h float64) pixel.Rect {
 	return pixel.R(center.X-w/2, center.Y-h/2, center.X+w/2, center.Y+h/2)
 }
+
+// UnitVec differs from pixel.Vec.Unit() in that, in the case of
+// zero vector, return zero vector instead
+func UnitVec(v pixel.Vec) pixel.Vec {
+	if v == pixel.ZV {
+		return pixel.ZV
+	}
+	return v.Unit()
+}

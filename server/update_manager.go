@@ -148,7 +148,7 @@ func (mgr *updateManager) playerDisconnected(id string) error {
 }
 
 func (mgr *updateManager) playerMoved(player *shared.Player, move *shared.MoveRequest) error {
-	if player.Direction == move.Direction {
+	if shared.UnitVec(player.Direction) == shared.UnitVec(move.Direction) {
 		//no-op, ignore this request
 		return nil
 	}

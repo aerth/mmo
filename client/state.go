@@ -19,8 +19,6 @@ type simulation struct {
 
 type GameWorld struct {
 	playerID            string
-	lock                sync.RWMutex
-	players             map[string]*shared.ClientPlayer
 	speechLock          sync.RWMutex
 	playerSpeech        map[string][]string
 	errc                chan error
@@ -63,7 +61,6 @@ func (g *GameWorld) handleConnection(conn net.Conn) {
 			g.errc <- err
 			continue
 		}
-
 	}
 }
 
