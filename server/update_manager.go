@@ -51,6 +51,10 @@ func (mgr *updateManager) sendError(conn net.Conn, err error) error {
 func (mgr *updateManager) send(id string, msg *shared.Message) error {
 	log.Printf("sending to %s: %#v", id, msg)
 	cli := mgr.getClient(id)
+	if cli == nil {
+		log.Println(id, msg)
+		return fmt.Errorf("nil player")
+	}
 	return shared.SendMessage(msg, cli.conn, true)
 }
 

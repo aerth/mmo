@@ -181,6 +181,7 @@ func (w *World) Players() []string {
 	var i int
 	for id := range w.players {
 		all[i] = id
+		i++
 	}
 	return all
 }

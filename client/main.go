@@ -111,57 +111,43 @@ func run(protocol, addr, id string) error {
 	}()
 	camPos := pixel.ZV
 	playerText := text.New(pixel.ZV, atlas)
+	requestsToSend := make(chan *shared.Request)
+	input := newInputProcessor(win, centerMatrix, requestsToSend)
 	for !win.Closed() {
 		win.Clear(colornames.Yellow)
 		dt := time.Since(last).Seconds()
 		last = time.Now()
 
-		if err := g.processPlayerInput(conn, win); err != nil {
-			return err
+		err := input.Process()
+		if err != nil {
+			log.Println(err)
 		}
+		//g.applySimulations()
 
-		g.applySimulations()
-
-		playerSprite.Animate(dt, g.facing, g.action)
+		//		playerSprite.Animate(dt, g.facing, g.action)
 
 		tilebatch.Draw(win)
 
 		lootSprite.Draw(win, pixel.IM.Scaled(pixel.ZV, 2.0))
-		g.lock.RLock()
-		pos := g.players[id].Position
-		camPos = pixel.Lerp(camPos, g.wincenter.Sub(pos), 1-math.Pow(1.0/128, dt))
+		//g.lock.RLock()
+		me, ok := cs.world.GetPlayer(id)
+		if !ok {
+			log.Println("didnt make it to new world")
+			return shared.FatalErr(fmt.Errorf("cant find self"))
+		}
+		pos := me.Position
+		camPos = pixel.Lerp(camPos, win.Bounds().Center().Sub(pos), 1-math.Pow(1.0/128, dt))
 		cam := pixel.IM.Moved(camPos)
 		win.SetMatrix(cam)
-		for _, player := range g.players {
+		for _, id := range cs.world.Players() {
+			player, ok := cs.world.GetPlayer(id)
+			if !ok {
+				log.Println("player 404")
+				continue
+			}
 			playerPos := pixel.IM.Moved(player.Position)
-			playerSprite.Draw(win, playerPos, player.Color)
-			g.speechLock.RLock()
-			txt, ok := g.playerSpeech[player.ID]
-			g.speechLock.RUnlock()
-			if ok && len(txt) > 0 {
-				for i, line := range txt {
-					playerText.Clear()
-					playerText.Dot = playerText.Orig
-					playerText.Dot.X -= playerText.BoundsOf(line).W() / 2
-					playerText.Dot.Y += playerText.BoundsOf(line).H() * float64(len(txt)-i)
-					playerText.WriteString(line + "\n")
-					playerText.DrawColorMask(win,
-						pixel.IM.Scaled(pixel.ZV, 2).Moved(pixel.V(player.Position.X, player.Position.Y+20)),
-						player.Color)
-				}
-			}
-
-			if g.speechMode && id == player.ID {
-				playerText.Clear()
-				playerText.Dot = playerText.Orig
-				playerText.Dot.X -= playerText.BoundsOf(g.currentSpeechBuffer+"_").W() / 2
-				playerText.WriteString(g.currentSpeechBuffer + "_")
-				playerText.DrawColorMask(win,
-					pixel.IM.Scaled(pixel.ZV, 2).Moved(pixel.V(player.Position.X, player.Position.Y-64)),
-					colornames.White)
-			}
+			playerSprite.Draw(win, playerPos, colornames.Blue)
 		}
-		g.lock.RUnlock()
 
 		// show mouse coordinates
 		mousePos := cam.Unproject(win.MousePosition())
