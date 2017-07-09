@@ -175,3 +175,12 @@ func (w *World) setPlayer(id string, player *Player) {
 	w.players[id] = player
 	w.playersLock.Unlock()
 }
+
+func (w *World) Players() []string {
+	all := make([]string, len(w.players))
+	var i int
+	for id := range w.players {
+		all[i] = id
+	}
+	return all
+}
